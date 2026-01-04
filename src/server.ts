@@ -13,33 +13,50 @@ app.use(express.json());
 app.get('/movies', async (_, res) => {
     const movies = await prisma.movie.findMany({
         orderBy: {
-            title: "asc",
+            title: 'asc',
         },
         include: {
             genres: true,
-            languages: true
-        }
+            languages: true,
+        },
     });
     res.json(movies);
 });
 
-app.post("/movies", async (req, res) => {
+app.post('/movies', async (req, res) => {
+    const { title, genre_id, language_id, oscar_count, release_date } =
+        req.body;
+    try {
+        
+        //Verificar no banco se já existe um filme com o nome que está sendo enviado
+        //case insesitive - se a busca for feita por john wick ou John wick ou JOHN WICK, o registro vai ser retornado na consulta
+        //case sensitive - se buscar por john wick e no banco estiver John wick, não vai ser retornado na consulta
 
-    const {title, genre_id, language_id, oscar_count, release_date} = req.body;
-try{
-    await prisma.movie.create({
-        data: {
-            title,
-            genre_id,
-            language_id,
-            oscar_count,
-            //o mês começa em 0 e vai até 11
-            release_date: new Date(release_date),
-        },
-    });
-}catch(error){
-    return res.status(500).send({message: "Falha ao cadastrar um filme"});
-}
+        const movieWithSameTitle = await prisma.movie.findFirst({
+            where: {
+                title: { equals: title, mode: 'insensitive' },
+            },
+        });
+
+        if (movieWithSameTitle) {
+            return res
+                .status(409)
+                .send({ message: 'Já existe um filme cadastrado com esse título' });
+        }
+
+        await prisma.movie.create({
+            data: {
+                title,
+                genre_id,
+                language_id,
+                oscar_count,
+                //o mês começa em 0 e vai até 11
+                release_date: new Date(release_date),
+            },
+        });
+    } catch (error) {
+        return res.status(500).send({ message: 'Falha ao cadastrar um filme' });
+    }
     res.status(201).send();
 });
 
