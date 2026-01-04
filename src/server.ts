@@ -8,8 +8,16 @@ const app = express();
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter });
 
-app.get('/movies', async (req, res) => {
-    const movies = await prisma.movie.findMany();
+app.get('/movies', async (_, res) => {
+    const movies = await prisma.movie.findMany({
+        orderBy: {
+            title: "asc",
+        },
+        include: {
+            genres: true,
+            languages: true
+        }
+    });
     res.json(movies);
 });
 
