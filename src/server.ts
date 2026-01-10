@@ -2,6 +2,8 @@ import 'dotenv/config';
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
+import swaggerUi from "swagger-ui-express";
+import swaggerDocument from "../swagger.json" with { type: "json" };
 
 const port = 3000;
 const app = express();
@@ -9,6 +11,7 @@ const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter });
 
 app.use(express.json());
+app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 app.get('/movies', async (_, res) => {
     const movies = await prisma.movie.findMany({
@@ -147,6 +150,34 @@ app.delete("/movies/:id", async (req, res) => {
      }
    
  res.status(200).send();
+});
+
+app.get("/movies/:genreName", async (req, res) => {
+    // receber o nome do gênero pelos paramêtros da rota
+    
+    // filtrar os filmes do banco pelo gênero
+
+    //retornar os filmes filtrados na resposta da rota
+
+    try {
+        const moviesFilteredByGenreName = await prisma.movie.findMany({
+            include: {
+                genres: true,
+                languages: true,
+            },
+            where: {
+                genres:{
+                    name:{
+                        equals:req.params.genreName,
+                        mode:"insensitive",
+                    },
+                },
+            },
+        });
+        res.status(200).send(moviesFilteredByGenreName);        
+    } catch(error){
+        return res.status(500).send({message:"Falha ao atualizar um filme"});
+    }
 });
 
 async function start() {
